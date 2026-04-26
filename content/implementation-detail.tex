@@ -114,3 +114,39 @@ Tiếp theo, chúng em deploy function và kiểm tra deployment trong logs. M�
     \includegraphics[width=0.85\textwidth]{img/phase-3-cloud-function.jpeg}
     \caption{Quá trình bản ghi được xử lý bởi Cloud Function \texttt{process-website-logs}}
 \end{figure}
+
+\subsection{Giai đoạn 4: Phân tích với BigQuery và BigQuery ML}
+
+Chúng em tạo BigQuery dataset \texttt{analytics\_ds} và bảng \texttt{website\_logs} để lưu dữ liệu đã làm giàu từ Cloud Function. Schema của bảng được khai báo như sau:
+
+\begin{lstlisting}[frame=none]
+[
+    { "name": "timestamp", "type": "TIMESTAMP", "mode": "NULLABLE" },
+    { "name": "user_id", "type": "STRING", "mode": "NULLABLE" },
+    { "name": "action", "type": "STRING", "mode": "NULLABLE" },
+    { "name": "page", "type": "STRING", "mode": "NULLABLE" },
+    { "name": "response_time_ms", "type": "INTEGER", "mode": "NULLABLE" },
+    { "name": "feedback", "type": "STRING", "mode": "NULLABLE" },
+    { "name": "sentiment_score", "type": "FLOAT", "mode": "NULLABLE" },
+    { "name": "processed_at", "type": "TIMESTAMP", "mode": "NULLABLE" }
+]
+\end{lstlisting}
+
+Sau khi bảng có đủ dữ liệu, chúng em huấn luyện mô hình logistic regression trong BigQuery ML với tên \texttt{purchase\_prediction}. Câu lệnh SQL dùng để huấn luyện mô hình như sau:
+
+\begin{lstlisting}[language=SQL, frame=none]
+CREATE OR REPLACE MODEL `analytics_ds.purchase_prediction`
+OPTIONS(
+    model_type='logistic_reg',
+    input_label_cols=['is_purchase'],
+    auto_class_weights=TRUE
+) AS
+SELECT
+    IF(action='purchase',1,0) AS is_purchase,
+    sentiment_score,
+    response_time_ms
+FROM `analytics_ds.website_logs`
+WHERE sentiment_score IS NOT NULL;
+\end{lstlisting}
+
+Truy vấn trên sử dụng \texttt{action} để tạo nhãn \texttt{is\_purchase}, sau đó huấn luyện mô hình với hai đặc trưng đầu vào là \texttt{sentiment\_score} và \texttt{response\_time\_ms}.
