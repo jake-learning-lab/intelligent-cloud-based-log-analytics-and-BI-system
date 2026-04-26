@@ -1,2 +1,48 @@
 \section{Kiến trúc hệ thống}
 
+\subsection{Luồng dữ liệu}
+
+Hệ thống xử lý dữ liệu theo quy trình sau:
+
+\begin{enumerate}
+    \item \textbf{Tạo dữ liệu hoạt động}: File \texttt{log\_simulator.py} tạo ra các sự kiện hoạt động tổng hợp của website, mô phỏng hành vi người dùng thực tế như xem sản phẩm, thêm vào giỏ hàng, và phản hồi.
+    
+    \item \textbf{Nhận sự kiện}: Pub/Sub nhận từng sự kiện và lưu trữ tạm thời cho đến khi có consumer sẵn sàng xử lý. Điều này đảm bảo không có sự kiện nào bị mất trong quá trình truyền tải.
+    
+    \item \textbf{Kích hoạt xử lý}: Cloud Function được kích hoạt tự động khi một pesan mới xuất hiện trong Pub/Sub, bắt đầu quy trình xử lý dữ liệu.
+    
+    \item \textbf{Phân tích cảm xúc}: Hàm kiểm tra xem sự kiện có chứa phản hồi của người dùng hay không. Nếu cần phân tích cảm xúc, nó gửi dữ liệu tới Natural Language API để xác định độ tích cực/tiêu cực của phản hồi.
+    
+    \item \textbf{Lưu trữ dữ liệu}: Hàm thêm điểm cảm xúc vào bản ghi và ghi toàn bộ dữ liệu vào BigQuery, tạo thành một kho dữ liệu trung tâm cho tất cả các hoạt động.
+    
+    \item \textbf{Huấn luyện mô hình}: BigQuery ML đọc bảng dữ liệu được lưu trữ và sử dụng nó để huấn luyện mô hình dự đoán mua hàng (\texttt{purchase\_prediction}), giúp dự đoán hành vi của khách hàng.
+    
+    \item \textbf{Trực quan hóa dữ liệu}: Looker Studio đọc cùng một bảng dữ liệu từ BigQuery để xây dựng các biểu đồ và bảng thông tin tương tác, cung cấp cái nhìn sâu sắc về các xu hướng và mẫu hoạt động.
+\end{enumerate}
+
+Quy trình này tạo thành một vòng lặp liên tục, cho phép hệ thống vừa xử lý dữ liệu thời gian thực vừa tích lũy kiến thức từ dữ liệu lịch sử để cải thiện độ chính xác của dự đoán.
+
+\subsection{Vai trò các thành phần}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{3.5cm}|p{9cm}|}
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} \\
+\hline
+\texttt{log\_simulator.py} & Tạo ra các bản ghi hoạt động giả lập. Là nguồn gốc của pipeline, mô phỏng hành vi người dùng thực tế (xem sản phẩm, thêm vào giỏ hàng, để lại phản hồi). \\
+\hline
+Pub/Sub & Hàng đợi tin nhắn bất đồng bộ giữa bộ mô phỏng và bộ xử lý. Đảm bảo không có tin nhắn nào bị mất khi hàm xử lý đang bận. \\
+\hline
+Cloud Function & Xử lý từng tin nhắn khi nó đến. Làm sạch dữ liệu, gọi các dịch vụ AI khi cần, và chuẩn bị bản ghi để lưu trữ. \\
+\hline
+Natural Language API & Dịch vụ phân tích văn bản dựa trên AI. Chuyển đổi văn bản phản hồi người dùng thành điểm cảm xúc (sentiment score). \\
+\hline
+BigQuery & Kho lưu trữ dữ liệu trung tâm. Lưu các bản ghi hoạt động đã được làm giàu dữ liệu trong bảng \texttt{analytics\_ds.website\_logs}. \\
+\hline
+BigQuery ML & Huấn luyện mô hình học máy trực tiếp bên trong BigQuery. Sử dụng dữ liệu lưu trữ để dự đoán hành vi mua hàng của khách hàng. \\
+\hline
+Looker Studio & Trực quan hóa dữ liệu. Kết nối với BigQuery để hiển thị dữ liệu dưới dạng biểu đồ, bảng thông tin, và báo cáo dễ đọc. \\
+\hline
+\end{tabular}
+\end{table}
