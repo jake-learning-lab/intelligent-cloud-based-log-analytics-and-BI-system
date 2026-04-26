@@ -1,1 +1,116 @@
 \section{Chi tiết triển khai}
+
+\subsection{Giai đoạn 1: Bảo mật và Cấu hình Môi trường}
+
+Bước đầu tiên là chuẩn bị môi trường Google Cloud để pipeline có thể chạy một cách an toàn. Chúng em tạo một dự án riêng biệt, kích hoạt các API cần thiết, và tạo một tài khoản dịch vụ có tên \texttt{cloud-function-sa} cho hàm được triển khai.
+
+Các API sau được bật cho dự án:
+
+\begin{itemize}
+    \item Cloud Pub/Sub API
+    \item Cloud Functions API
+    \item BigQuery API
+    \item Cloud Natural Language API
+\end{itemize}
+
+Các vai trò chính được gán cho tài khoản dịch vụ \texttt{cloud-function-sa} là:
+
+\begin{itemize}
+    \item \textbf{Pub/Sub Subscriber} --- cho phép hàm nhận sự kiện từ trigger Pub/Sub
+    \item \textbf{BigQuery Data Editor} --- cho phép hàm chèn các bản ghi được làm giàu dữ liệu vào \texttt{analytics\_ds.website\_logs}
+    \item \textbf{Cloud Functions Invoker} --- cho phép hàm chạy trong môi trường triển khai
+    \item \textbf{Cloud Natural Language API User} --- cho phép truy cập API phân tích cảm xúc nếu cần thiết trong quá trình triển khai hoặc chạy
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{img/phase-1-service-account.jpeg}
+    \caption{Tài khoản dịch vụ \texttt{cloud-function-sa}}
+\end{figure}
+
+\subsection{Giai đoạn 2: Nhập liệu dữ liệu với Pub/Sub}
+
+Chúng em tạo Pub/Sub topic \texttt{website-logs} và subscription \texttt{website-logs-sub} trong Google Cloud Console. Những thành phần này tạo thành tầng nhập liệu cho pipeline.
+
+\subsubsection*{Tạo topic và subscription}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{img/phase-2-pubsub-topic.jpeg}
+    \caption{Pub/Sub topic \texttt{website-logs}}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{img/phase-2-pubsub-subcription.jpeg}
+    \caption{Pub/Sub subscription \texttt{website-logs-sub}}
+\end{figure}
+
+\subsubsection*{Tạo log simulator}
+
+Chúng em tạo file \texttt{log\_simulator.py} trong Cloud Shell tạo ra các sự kiện website tổng hợp với các trường: \texttt{timestamp}, \texttt{user\_id}, \texttt{action}, \texttt{page}, \texttt{response\_time\_ms}, và tùy chọn \texttt{feedback} (khả năng 30\%). Script sử dụng Google Cloud Pub/Sub client library, được cài đặt qua:
+
+\begin{lstlisting}[language=bash, frame=none]
+pip install google-cloud-pubsub
+\end{lstlisting}
+
+\subsubsection*{Chạy simulator}
+
+Chúng em đã chạy simulator trong Cloud Shell:
+
+\begin{lstlisting}[language=bash, frame=none]
+python log_simulator.py
+\end{lstlisting}
+
+Simulator đã xuất bản tin nhắn liên tục. Chúng em đã xác minh dữ liệu đang chảy bằng cách kéo tin nhắn từ subscription \texttt{website-logs-sub} trong Pub/Sub console và xác nhận tất cả các trường đều có mặt và được định dạng chính xác.
+
+\subsection{Giai đoạn 3: Xử lý với Cloud Functions và AI}
+
+Ở giai đoạn này, chúng em triển khai tầng xử lý dưới dạng dịch vụ Cloud Function có tên \texttt{process-website-logs} và kết nối với Pub/Sub để mỗi tin nhắn mới từ \texttt{website-logs} sẽ tự động kích hoạt xử lý.
+
+Quy trình thiết lập được thực hiện theo các bước sau:
+
+\begin{enumerate}
+    \item Mở Cloud Run functions từ khu vực Cloud Functions trong Google Cloud Console.
+    \item Tạo một Python function bằng inline editor.
+    \item Thiết lập cấu hình dịch vụ cốt lõi:
+    \begin{itemize}
+        \item Service name: \texttt{process-website-logs}
+        \item Runtime: Python (phiên bản mới nhất có trong console)
+        \item Billing mode: Request-based
+        \item Minimum instances: 0
+    \end{itemize}
+    \item Cấu hình trigger trong Eventarc Trigger:
+    \begin{itemize}
+        \item Event provider: Cloud Pub/Sub
+        \item Event type: \texttt{google.cloud.pubsub.topic.v1.messagePublished}
+        \item Topic: \texttt{website-logs}
+        \item Region: cùng region với function khi có thể
+    \end{itemize}
+    \item Cập nhật thiết lập bảo mật runtime:
+    \begin{itemize}
+        \item Runtime service account: \texttt{cloud-function-sa}
+        \item Function entry point: \texttt{process\_log}
+    \end{itemize}
+\end{enumerate}
+
+Sau khi hoàn tất phần cấu hình, chúng em cập nhật mã nguồn trong inline editor:
+
+\begin{itemize}
+    \item \texttt{main.py}: nhận dữ liệu Pub/Sub, làm giàu sentiment bằng Natural Language API, và ghi dữ liệu đã làm giàu vào BigQuery.
+    \item \texttt{requirements.txt}: khai báo các thư viện phụ thuộc cần khi deploy.
+\end{itemize}
+
+\begin{lstlisting}[frame=none]
+functions-framework==3.*
+google-cloud-bigquery==3.21.0
+google-cloud-language==2.13.0
+\end{lstlisting}
+
+Tiếp theo, chúng em deploy function và kiểm tra deployment trong logs. Một lần chạy thành công cho thấy các bản ghi được xử lý và chèn vào \texttt{analytics\_ds.website\_logs}, xác nhận Giai đoạn 3 đã hoàn tất và sẵn sàng cho các bước phân tích downstream.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/phase-3-cloud-function.jpeg}
+    \caption{Quá trình bản ghi được xử lý bởi Cloud Function \texttt{process-website-logs}}
+\end{figure}
