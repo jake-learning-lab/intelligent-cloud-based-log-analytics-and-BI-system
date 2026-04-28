@@ -54,11 +54,7 @@ Từ quá trình triển khai và kết quả thu được, chúng em có nhữn
 \begin{enumerate}
     \item \textbf{Tính ổn định và hiệu năng của Data Pipeline}
     
-    Trình mô phỏng tạo ra luồng sự kiện liên tục, Pub/Sub tiếp nhận và định tuyến không mất mát dữ liệu, và Cloud Function xử lý thành công từng tin nhắn. Điều này chứng minh kiến trúc serverless trên GCP có thể hoạt động ổn định và mở rộng tự động mà không gặp sự cố về hạ tầng.
-    
-    \item \textbf{Khả năng tích hợp AI và làm giàu dữ liệu (Data Enrichment)}
-    
-    Khoảng 30\% bản ghi chứa feedback đã được Cloud Function gọi qua Natural Language API để trích xuất điểm số cảm xúc (sentiment\_score) thành công. Khâu này chứng minh tính khả thi của việc nhúng AI vào đường ống dữ liệu thời gian thực (real-time).
+    Trình mô phỏng tạo ra luồng sự kiện liên tục, Pub/Sub tiếp nhận và định tuyến không mất mát dữ liệu, và Cloud Function xử lý thành công từng tin nhắn.
     
     \item \textbf{Chất lượng dữ liệu và Giới hạn của Machine Learning}
     
@@ -66,10 +62,10 @@ Từ quá trình triển khai và kết quả thu được, chúng em có nhữn
     
     \item \textbf{Hiệu quả của công cụ trực quan hóa (Looker Studio)}
     
-    Dashboard Looker Studio đã kết nối trực tiếp với BigQuery và cập nhật theo thời gian thực một cách hiệu quả, giúp nhận diện nhanh chóng:
+    Dashboard Looker Studio đã kết nối trực tiếp với BigQuery và cập nhật theo thời gian thực một cách hiệu quả, tiện lợi:
     \begin{itemize}
         \item Lưu lượng truy cập qua các khung giờ hoạt động của trình mô phỏng.
-        \item Phân bố đồng đều của các hành động người dùng (mỗi hành động view, click, add\_to\_cart, purchase đều chiếm xấp xỉ 25\% do tính chất random).
+        \item Phân bố  của các hành động người dùng 
         \item Thống kê điểm số cảm xúc trung bình (sentiment gauge) toàn cục.
     \end{itemize}
     
@@ -97,17 +93,3 @@ Dưới đây là các hình ảnh chính từ quá trình triển khai:
     \includegraphics[width=0.9\textwidth]{img/phase-5-looker-dashboard.png}
     \caption{Dashboard Looker Studio hiển thị sentiment gauge, traffic time series, và action pie chart}
 \end{figure}
-
-\subsection{Rút ra kết luận từ kết quả}
-
-Qua quá trình thực hiện đồ án, pipeline phân tích serverless đã giúp chúng em chứng minh và nắm bắt được các khả năng thực tế của đám mây:
-
-\begin{itemize}
-    \item \textbf{Xử lý dữ liệu thời gian thực liền mạch:} Sự kết hợp giữa Pub/Sub và Cloud Function cho phép tiếp nhận và xử lý luồng sự kiện liên tục từ trình mô phỏng một cách ổn định, đồng thời cho thấy rõ tiềm năng tự động mở rộng (auto-scaling) nếu lưu lượng thực tế tăng vọt.
-    
-    \item \textbf{Làm giàu dữ liệu bằng AI (Data Enrichment):} Việc tích hợp Cloud Natural Language API ngay trong quá trình xử lý (Cloud Function) giúp tự động trích xuất điểm cảm xúc từ văn bản, tạo ra các đặc trưng (features) mới có giá trị cho phân tích mà không cần can thiệp thủ công.
-    
-    \item \textbf{Dự đoán hành vi:} Dù chất lượng dữ liệu mô phỏng giới hạn độ chính xác của kết quả đầu ra, công cụ BigQuery ML vẫn minh chứng được sự tiện lợi vượt trội. Nó cho phép huấn luyện các thuật toán như Logistic Regression để dự đoán hành vi mua hàng chỉ bằng câu lệnh SQL tiêu chuẩn, loại bỏ hoàn toàn sự phức tạp của việc thiết lập môi trường ML truyền thống.
-    
-    \item \textbf{Trực quan hóa dữ liệu kinh doanh:} Looker Studio kết nối trực tiếp với Data Warehouse, tự động biến các dữ liệu log thô thành các báo cáo (Dashboard) sinh động, dễ hiểu và cập nhật theo thời gian thực, hỗ trợ trực tiếp và hiển thị trực quan cho người dùng.
-\end{itemize}
