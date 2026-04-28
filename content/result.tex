@@ -1,1 +1,113 @@
 \section{Kết quả}
+
+\subsection{Thống kê tổng quan}
+
+Sau khi chạy pipeline hoàn chỉnh với dữ liệu mô phỏng, hệ thống tạo ra các số liệu sau:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Chỉ số} & \textbf{Giá trị} \\
+\hline
+Tổng số bản ghi xử lý & {\small 2504} \\
+\hline
+Bản ghi có feedback & {\small 771} \\
+\hline
+Điểm sentiment trung bình & {\small 0.01} \\
+\hline
+Tỷ lệ hành động mua hàng & {\small 24.9\%} \\
+\hline
+\end{tabular}
+\caption{Thống kê tổng quan dữ liệu sau khi xử lý}
+\end{table}
+
+\subsection{Kết quả đánh giá mô hình BigQuery ML}
+
+Mô hình logistic regression \texttt{purchase\_prediction} được huấn luyện trên dữ liệu đã làm giàu. Kết quả đánh giá mô hình sử dụng \texttt{ML.EVALUATE} như sau:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Chỉ số Hiệu Năng} & \textbf{Giá trị} \\
+\hline
+Precision & {\small 0.0} \\
+\hline
+Recall & {\small 0.0} \\
+\hline
+Accuracy & {\small 0.758} \\
+\hline
+ROC AUC & {\small 0.552} \\
+\hline
+F1-Score & {\small 0.0} \\
+\end{tabular}
+\caption{Kết quả đánh giá mô hình dự đoán hành vi mua hàng}
+\end{table}
+
+Những chỉ số này phản ánh một thực tế quan trọng về tập dữ liệu đầu vào. Với mức ROC AUC chỉ đạt khoảng 0.55 và các chỉ số Precision/Recall ở mức thấp, mô hình hiện tại chưa thể phân loại chính xác hành vi mua hàng. Tuy nhiên, điều này cung cấp những insight kỹ thuật rất giá trị.
+
+\subsection{Quan sát chính từ pipeline}
+
+Từ quá trình triển khai và kết quả thu được, chúng em có những nhận xét sau:
+
+\begin{enumerate}
+    \item \textbf{Tính ổn định và hiệu năng của Data Pipeline}
+    
+    Trình mô phỏng tạo ra luồng sự kiện liên tục, Pub/Sub tiếp nhận và định tuyến không mất mát dữ liệu, và Cloud Function xử lý thành công từng tin nhắn. Điều này chứng minh kiến trúc serverless trên GCP có thể hoạt động ổn định và mở rộng tự động mà không gặp sự cố về hạ tầng.
+    
+    \item \textbf{Khả năng tích hợp AI và làm giàu dữ liệu (Data Enrichment)}
+    
+    Khoảng 30\% bản ghi chứa feedback đã được Cloud Function gọi qua Natural Language API để trích xuất điểm số cảm xúc (sentiment\_score) thành công. Khâu này chứng minh tính khả thi của việc nhúng AI vào đường ống dữ liệu thời gian thực (real-time).
+    
+    \item \textbf{Chất lượng dữ liệu và Giới hạn của Machine Learning}
+    
+    Sự sụt giảm hiệu năng của mô hình BQML là một minh chứng rõ nét cho nguyên lý "Garbage In, Garbage Out". Qua phân tích mã nguồn mô phỏng, các biến đầu vào (\texttt{response\_time\_ms}, \texttt{feedback}) và biến mục tiêu (\texttt{action}) được sinh ra hoàn toàn ngẫu nhiên và độc lập. Do không có mối tương quan logic thực tế nào tồn tại trong tập dữ liệu thô, thuật toán Logistic Regression không thể tìm ra quy luật phân loại. Điều này bài học lớn về việc chất lượng dữ liệu thu thập quyết định trực tiếp đến sự thành bại của mô hình AI.
+    
+    \item \textbf{Hiệu quả của công cụ trực quan hóa (Looker Studio)}
+    
+    Dashboard Looker Studio đã kết nối trực tiếp với BigQuery và cập nhật theo thời gian thực một cách hiệu quả, giúp nhận diện nhanh chóng:
+    \begin{itemize}
+        \item Lưu lượng truy cập qua các khung giờ hoạt động của trình mô phỏng.
+        \item Phân bố đồng đều của các hành động người dùng (mỗi hành động view, click, add\_to\_cart, purchase đều chiếm xấp xỉ 25\% do tính chất random).
+        \item Thống kê điểm số cảm xúc trung bình (sentiment gauge) toàn cục.
+    \end{itemize}
+    
+    Việc tự động hóa báo cáo này giúp giảm thiểu thao tác thủ công và cung cấp cái nhìn trực quan ngay lập tức cho các bên liên quan.
+\end{enumerate}
+
+\subsection{Hình ảnh minh họa}
+
+Dưới đây là các hình ảnh chính từ quá trình triển khai:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/result-bq-table.png}
+    \caption{Bảng \texttt{website\_logs} trong BigQuery với các bản ghi đã xử lý và trường sentiment\_score}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+        \includegraphics[width=0.85\textwidth]{img/result-bqml-evaluation.png}
+        \caption{Kết quả đánh giá mô hình \texttt{purchase\_prediction} từ \texttt{ML.EVALUATE}}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{img/phase-5-looker-dashboard.png}
+    \caption{Dashboard Looker Studio hiển thị sentiment gauge, traffic time series, và action pie chart}
+\end{figure}
+
+\subsection{Rút ra kết luận từ kết quả}
+
+Qua quá trình thực hiện đồ án, pipeline phân tích serverless đã giúp chúng em chứng minh và nắm bắt được các khả năng thực tế của đám mây:
+
+\begin{itemize}
+    \item \textbf{Xử lý dữ liệu thời gian thực liền mạch:} Sự kết hợp giữa Pub/Sub và Cloud Function cho phép tiếp nhận và xử lý luồng sự kiện liên tục từ trình mô phỏng một cách ổn định, đồng thời cho thấy rõ tiềm năng tự động mở rộng (auto-scaling) nếu lưu lượng thực tế tăng vọt.
+    
+    \item \textbf{Làm giàu dữ liệu bằng AI (Data Enrichment):} Việc tích hợp Cloud Natural Language API ngay trong quá trình xử lý (Cloud Function) giúp tự động trích xuất điểm cảm xúc từ văn bản, tạo ra các đặc trưng (features) mới có giá trị cho phân tích mà không cần can thiệp thủ công.
+    
+    \item \textbf{Dự đoán hành vi:} Dù chất lượng dữ liệu mô phỏng giới hạn độ chính xác của kết quả đầu ra, công cụ BigQuery ML vẫn minh chứng được sự tiện lợi vượt trội. Nó cho phép huấn luyện các thuật toán như Logistic Regression để dự đoán hành vi mua hàng chỉ bằng câu lệnh SQL tiêu chuẩn, loại bỏ hoàn toàn sự phức tạp của việc thiết lập môi trường ML truyền thống.
+    
+    \item \textbf{Trực quan hóa dữ liệu kinh doanh:} Looker Studio kết nối trực tiếp với Data Warehouse, tự động biến các dữ liệu log thô thành các báo cáo (Dashboard) sinh động, dễ hiểu và cập nhật theo thời gian thực, hỗ trợ trực tiếp và hiển thị trực quan cho người dùng.
+\end{itemize}

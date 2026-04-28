@@ -150,3 +150,70 @@ WHERE sentiment_score IS NOT NULL;
 \end{lstlisting}
 
 Truy vấn trên sử dụng \texttt{action} để tạo nhãn \texttt{is\_purchase}, sau đó huấn luyện mô hình với hai đặc trưng đầu vào là \texttt{sentiment\_score} và \texttt{response\_time\_ms}.
+
+\subsection{Giai đoạn 5: Trực quan hóa dữ liệu với Looker Studio}
+
+Giai đoạn cuối cùng của pipeline là trực quan hóa kết quả phân tích. Chúng em kết nối Looker Studio trực tiếp với bảng \texttt{analytics\_ds.website\_logs} để xây dựng một dashboard thương mại tương tác.
+
+\subsubsection*{Kết nối Looker Studio và BigQuery}
+
+\begin{enumerate}
+    \item Truy cập Looker Studio (looker.studio)
+    \item Tạo một báo cáo mới (New Report)
+    \item Chọn BigQuery làm nguồn dữ liệu
+    \item Chọn dự án GCP, dataset \texttt{analytics\_ds} và bảng \texttt{website\_logs}
+    \item Xác nhận kết nối
+\end{enumerate}
+
+\subsubsection*{Xây dựng các biểu đồ chính}
+
+Chúng em xây dựng ba biểu đồ chính để trình bày thông tin kinh doanh quan trọng:
+
+\begin{enumerate}
+    \item \textbf{Biểu đồ Gauge (Sentiment Trung Bình)}
+    \begin{itemize}
+        \item Loại: Gauge (thước đo)
+        \item Số liệu: Giá trị trung bình của \texttt{sentiment\_score}
+        \item Mục đích: Hiển thị độ hài lòng chung của khách hàng
+        \item Các bước thực hiện:
+        \begin{itemize}
+            \item Thêm một biểu đồ Gauge vào dashboard
+            \item Chọn trường \texttt{sentiment\_score} làm số liệu
+            \item Cấu hình phạm vi hiển thị từ 0 đến 1
+            \item Chọn phép tính AVG cho \texttt{sentiment\_score} 
+        \end{itemize}
+        
+    \end{itemize}
+    \item \textbf{Biểu đồ Chuỗi Thời Gian (Lưu lượng theo Giờ)}
+    \begin{itemize}
+        \item Loại: Time series (đường biểu đồ)
+        \item Trục X: Thời gian (timestamp)
+        \item Trục Y: Số lượng sự kiện
+        \item Mục đích: Cho thấy xu hướng lưu lượng truy cập theo thời gian
+        \item Các bước thực hiện:
+        \begin{itemize}
+            \item Thêm một biểu đồ  chuỗi thời gian vào dashboard
+            \item Chọn trường \texttt{timestamp} làm trục X và đếm số lượng sự kiện làm trục Y
+            \item Cấu hình để trục X nhóm theo giờ
+        \end{itemize}
+    \end{itemize}
+    
+    \item \textbf{Biểu đồ Tròn (Phân bố Hành động)}
+    \begin{itemize}
+        \item Loại: Pie chart (biểu đồ tròn)
+        \item Dữ liệu: Số lượng từng loại hành động (\texttt{action})
+        \item Mục đích: So sánh tỷ lệ các hành động người dùng
+        \item Các bước thực hiện:
+        \begin{itemize}
+            \item Thêm một biểu đồ tròn vào dashboard
+            \item Chọn trường \texttt{action} làm phân loại và đếm số lượng sự kiện làm giá trị
+            \item Cấu hình để hiển thị tỷ lệ phần trăm cho mỗi loại hành động
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{img/phase-5-looker-dashboard.png}
+    \caption{Tổng quan dashboard Looker Studio với ba biểu đồ chính và các bộ lọc}
+\end{figure}
