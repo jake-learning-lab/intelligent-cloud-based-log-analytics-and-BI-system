@@ -47,7 +47,7 @@ F1-Score & {\small 0.0} \\
 
 Những chỉ số này phản ánh một thực tế quan trọng về tập dữ liệu đầu vào. Với mức ROC AUC chỉ đạt khoảng 0.55 và các chỉ số Precision/Recall ở mức thấp, mô hình hiện tại chưa thể phân loại chính xác hành vi mua hàng. Tuy nhiên, điều này cung cấp những insight kỹ thuật rất giá trị.
 
-\subsection{Quan sát chính từ pipeline}
+\subsection{Quan sát chính từ pipeline và kết luận}
 
 Từ quá trình triển khai và kết quả thu được, chúng em có những nhận xét sau:
 
@@ -93,3 +93,83 @@ Dưới đây là các hình ảnh chính từ quá trình triển khai:
     \includegraphics[width=0.9\textwidth]{img/phase-5-looker-dashboard.png}
     \caption{Dashboard Looker Studio hiển thị sentiment gauge, traffic time series, và action pie chart}
 \end{figure}
+
+\subsection{Tiêu chí đánh giá}
+
+Bảng dưới đây thể hiện tiêu chí đánh giá của đồ án:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{2.8cm}|p{7.2cm}|c|}
+\hline
+\textbf{Tiêu chí} & \textbf{Yêu cầu} & \textbf{Điểm} \\
+\hline
+Kiến trúc \& Bảo mật & Thiết lập đúng Pub/Sub, IAM Roles, và nguyên tắc Least Privilege access & 20 \\
+\hline
+Chức năng Pipeline & Dữ liệu chảy thành công từ Simulator $\to$ BigQuery. Logs được phân tích đúng & 25 \\
+\hline
+Machine Learning (AI) & Cloud Function lấy sentiment scores qua API thành công. BQML model được tạo và huấn luyện & 25 \\
+\hline
+Trực quan hóa & Dashboard hoạt động, tự động cập nhật, và trực quan hóa rõ ràng dữ liệu \texttt{sentiment\_score} & 20 \\
+\hline
+Báo cáo & Cấu trúc rõ ràng (Giới thiệu, Kiến trúc, Triển khai, Kết quả, Kết luận). Giải thích rõ ràng về kiến trúc, pipeline, ML model. Trình bày chuyên nghiệp, có sơ đồ minh họa. & 10 \\
+\hline
+Member Information \& Assessment & 
+\begin{itemize}
+    \item Nguyễn Minh Hiếu (23120124): 33.3\%.
+    \item Nguyễn Minh Tú (23120101): 33.3\%.
+    \item Nguyễn Xuân Duy (23120121): 33.3\%.
+\end{itemize} & 0 \\
+\hline
+\textbf{Tổng cộng} & & \textbf{100} \\
+\hline
+\end{tabular}
+\caption{Tiêu chí đánh giá đồ án Intelligent Cloud-Based Log Analytics \& BI System}
+\end{table}
+
+\clearpage
+
+\subsection{AI Tool Usage}
+
+\subsubsection{1. Sửa lỗi hiển thị \texttt{sentiment\_score} trên Looker Studio}
+
+\textbf{1. Các câu lệnh (Prompts) đã sử dụng}
+
+\textit{"Cho tôi cái query trong big query về average sentiment score. Phần chỉ số average sentiment score của tôi trong looker là 0.0 dù đã bật đến số thập phân số 3"}
+
+\textbf{2. Vấn đề/Lỗi phát sinh (Issues encountered)}
+
+Mặc dù dữ liệu gốc trong BigQuery đã tính toán ra điểm cảm xúc trung bình (\texttt{0.0136}), nhưng biểu đồ Gauge trên Looker Studio liên tục hiển thị \texttt{0,0}. Dù đã tăng giới hạn số dữ liệu sinh ra từ simulator, kết quả hiển thị trên Dashboard vẫn không thay đổi.
+
+\textbf{3. Quá trình phân tích và giải quyết (Troubleshooting \& Resolution)}
+
+\begin{itemize}
+    \item \textbf{Phân tích đối chiếu:} Thông qua AI, em đã viết câu truy vấn SQL để kiểm tra chéo dữ liệu trực tiếp trong BigQuery. Kết quả \texttt{0.0136} chứng tỏ data pipeline hoạt động hoàn hảo, lỗi nằm ở lớp hiển thị.
+    \item \textbf{Xử lý làm tròn số:} AI chỉ ra định dạng dấu phẩy tiếng Việt khiến Looker làm tròn số. Em đã vào \textit{Kiểu (Style)} $\rightarrow$ \textit{Số liệu chính} và ép \textit{Độ chính xác thập phân} thành 3.
+    \item \textbf{Xử lý xung đột kiểu dữ liệu:} Em phát hiện \texttt{sentiment\_score} bị gán \textit{Tổng số (Sum)} trong phần nguồn dữ liệu đầu vào dù trong biểu đồ đã chọn phép tính AVG. Em điều chỉnh lại thành \textit{Trung bình (Average)} và tạo lại biểu đồ mới để xóa cache.
+\end{itemize}
+
+\subsubsection{2. Đánh giá nghịch lý Precision = 0 của mô hình BQML}
+
+\textbf{1. Các câu lệnh (Prompts) đã sử dụng}
+
+\begin{itemize}
+    \item \textit{"0.0 0.0 0.758426 0.0 0.55006 0.55199 precision recall accuracy f1\_score log\_loss roc\_acc. Đây là các chỉ số của mô hình bigqueryml."}
+    \item \textit{"Tôi đã cắm chạy thêm từ 1800 records lên 2500 records và precision vẫn là 0."}
+    \item \textit{"Nhận xét gì cho khả năng dự đoán của model, nguyên nhân gì. Code ref model này có mối liên hệ gì giữa các hành vi, feedback, response time không?"}
+\end{itemize}
+
+\textbf{2. Vấn đề/Lỗi phát sinh (Issues encountered)}
+
+Sau khi huấn luyện mô hình dự đoán hành vi mua hàng, kết quả \texttt{ML.EVALUATE} cho thấy Precision, Recall bằng 0.0, trong khi Accuracy đạt xấp xỉ 75\%. Dù đã tăng dữ liệu lên xấp xỉ 1800 lên 2500 bản ghi, mô hình vẫn không cải thiện.
+
+\textbf{3. Quá trình phân tích và giải quyết (Troubleshooting \& Resolution)}
+
+\begin{itemize}
+    \item \textbf{Phân tích hiện tượng:} Ban đầu nghi ngờ do mất cân bằng dữ liệu. Nhưng khi xử lý xong mà ROC AUC vẫn \textasciitilde 0.55, em dùng AI phân tích sâu mã nguồn.
+    \item \textbf{Tìm ra nguyên nhân gốc rễ:} Sau khi đọc code \texttt{log\_simulator.py} trong file yêu cầu đồ án, em thấy các biến (\texttt{response\_time\_ms}, \texttt{feedback}, \texttt{action}) được tạo ra bằng hàm \texttt{random} hoàn toàn độc lập với nhau.
+    \item \textbf{Cách xử lý/Bài học:} Sau khi review với AI, chúng em quyết định giữ nguyên hiện trạng để phản ánh đúng bản chất thuật toán: Machine Learning không thể tìm quy luật từ dữ liệu nhiễu (noise). Bài học là khâu Ingestion và chất lượng dữ liệu đầu vào mang tính quyết định.
+\end{itemize}
+
+\subsection{Sản phẩm}
+Link Looker Studio Dashboard: \url{https://datastudio.google.com/s/rwHy3qZs51s}
